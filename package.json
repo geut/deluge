@@ -1,0 +1,66 @@
+{
+  "name": "@geut/deluge",
+  "version": "0.0.1",
+  "description": "Send broadcast messages on top of p2p networks",
+  "main": "index.js",
+  "files": [
+    "lib",
+    "src",
+    "bin",
+    "index.js"
+  ],
+  "scripts": {
+    "start": "budo example/src/index.js --dir example --live",
+    "test": "jest --passWithNoTests",
+    "posttest": "npm run lint",
+    "lint": "standard \"**/*.js\"",
+    "version": "chan release --allow-yanked ${npm_package_version} && git add .",
+    "prepublishOnly": "npm test"
+  },
+  "dependencies": {
+    "nanocustomassert": "^1.0.0",
+    "tiny-lru": "^7.0.6",
+    "varint": "^6.0.0"
+  },
+  "devDependencies": {
+    "@geut/chan": "^2.0.0",
+    "@geut/network-setup": "^2.1.0",
+    "budo": "^11.6.4",
+    "jest": "^24.8.0",
+    "nanobench-utils": "^1.0.0",
+    "standard": "^14.3.1"
+  },
+  "jest": {
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ]
+  },
+  "standard": {
+    "env": [
+      "jest",
+      "node",
+      "browser"
+    ],
+    "ignore": [
+      "**/example/src/force-graph.js"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/geut/deluge.git"
+  },
+  "keywords": [
+    "broadcast",
+    "p2p",
+    "flooding"
+  ],
+  "author": {
+    "name": "GEUT",
+    "email": "contact@geutstudio.com"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/geut/deluge/issues"
+  },
+  "homepage": "https://github.com/geut/deluge#readme"
+}
