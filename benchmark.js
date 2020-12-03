@@ -11,7 +11,7 @@ const { createNetworkSetup } = require('./tests/setup')
 
   const direct = await setup.complete(2)
   const watz = await setup.wattsStrogatz(15, 10, 0)
-  const tree = await setup.balancedBinTree(3)
+  const tree = await setup.balancedBinTree(5)
 
   bench('10000 requests: broadcast direct (2 nodes)', async (b) => {
     b.start()

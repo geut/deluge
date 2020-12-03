@@ -1,5 +1,5 @@
 const { EventEmitter } = require('events')
-const { NetworkSetup, Peer: PeerBase } = require('@geut/network-setup')
+const { NetworkSetup, Peer: PeerBase, Connection } = require('@geut/network-setup')
 
 const { Deluge } = require('..')
 
@@ -7,7 +7,16 @@ class Peer extends PeerBase {
   constructor (node, opts = {}) {
     super(node)
 
-    this.broadcast = new Deluge(opts)
+    const cache = new Set()
+    this.broadcast = new Deluge({
+      onPacket: (packet) => {
+        const id = packet.toString()
+        if (cache.has(id)) return false
+        cache.add(id)
+        return true
+      },
+      ...opts
+    })
     this.broadcast.on('packet', packet => {
       this.emit('packet', packet)
     })
@@ -24,18 +33,23 @@ class Peer extends PeerBase {
     return this.broadcast.peers
   }
 
+  async _open () {
+    await this.broadcast.open()
+    await super._open()
+  }
+
   send (ch, data) {
     this.broadcast.send(ch, data)
   }
 
-  connect (peer, send) {
+  async connect (peer, send) {
     const fromPeer = new EventEmitter()
     fromPeer.id = this.id
     const toPeer = new EventEmitter()
     toPeer.id = peer.id
 
-    this.broadcast.addPeer(peer.bufferId, handler(fromPeer, toPeer))
-    peer.broadcast.addPeer(this.bufferId, handler(toPeer, fromPeer))
+    await this.broadcast.addPeer(peer.bufferId, handler(fromPeer, toPeer))
+    await peer.broadcast.addPeer(this.bufferId, handler(toPeer, fromPeer))
 
     function handler (from, to) {
       return {
@@ -63,8 +77,12 @@ function createNetworkSetup (opts = {}) {
       onPeer && onPeer(peer)
       return peer
     },
-    onConnection (_, fromPeer, toPeer) {
-      fromPeer.connect(toPeer, onSend)
+    onConnection (link, fromPeer, toPeer) {
+      return new Connection(link, {
+        open () {
+          return fromPeer.connect(toPeer, onSend)
+        }
+      })
     }
   })
 }

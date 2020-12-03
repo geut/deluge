@@ -46,11 +46,11 @@ class Peer extends EventEmitter {
   }
 
   /**
-   * @param {(data: Buffer) => UnsubscribeFunction} next
+   * @param {(data: (Buffer|null)) => UnsubscribeFunction} next
    */
   subscribe (next, onSend) {
     this.on('send', onSend)
-    const unsubscribe = this.handler.subscribe((buf) => next(buf, this.id))
+    const unsubscribe = this.handler.subscribe((buf) => next(this.id, buf))
     this._unsubscribe = () => {
       this.removeListener('send', onSend)
       if (unsubscribe) unsubscribe()

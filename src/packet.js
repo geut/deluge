@@ -30,9 +30,9 @@ class Packet {
 
   /**
    * @constructor
-   * @param {object} opts
+   * @param {Object} opts
    * @param {Buffer} opts.origin
-   * @param {Buffer} opts.data
+   * @param {Buffer|TypedArray} opts.data
    * @param {number} [opts.channel=0]
    * @param {TimestampSeq} [opts.seqno]
    * @param {Buffer} [opts.buffer]
@@ -92,9 +92,9 @@ class Packet {
     offset += varint.encode.bytes
     this.seqno.write(buf, offset)
     offset += this.seqno.bytes
-    this.origin.copy(buf, offset)
+    buf.set(this.origin, offset)
     offset += this.origin.length
-    this.data.copy(buf, offset)
+    buf.set(this.data, offset)
     return buf
   }
 }

@@ -29,7 +29,7 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
     }
   })
 
-  const network = await setup.balancedBinTree(15)
+  const network = await setup.balancedBinTree(3)
 
   view
     .nodeVal(4)

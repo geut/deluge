@@ -44,12 +44,29 @@ class TimestampSeq {
     return buf
   }
 
-  equals (value) {
-    return this.timestamp === value.timestamp && this.offset === value.offset
+  /**
+   * Compare two TimestampSeq (self and value).
+   *
+   * Returns:
+   *  - 0 if they are equals.
+   *  - 1 if self is major than value
+   *  - -1 if self is minor than value
+   *
+   * @param {TimestampSeq} value
+   * @returns {number}
+   */
+  compare (value) {
+    if (this.timestamp === value.timestamp) {
+      if (this.offset === value.offset) return 0
+      if (this.offset > value.offset) return 1
+      return -1
+    }
+    if (this.timestamp > value.timestamp) return 1
+    return -1
   }
 }
 
-module.exports = function generator (limit = 100000) {
+module.exports = function generator (limit = 10000) {
   let timestamp = 0
   let offset = 0
 
