@@ -39,10 +39,7 @@ const Packet = require('./packet')
 
 /** @type {OnPeerCallback} */
 const peerCallback = (id, handler) => new Peer(id, handler)
-
-const passPacket = () => true
-const passPacketPeer = () => true
-
+const pass = () => true
 const byteLength = (packet) => packet.buffer.byteLength
 
 class Deluge extends NanoresourcePromise {
@@ -54,7 +51,7 @@ class Deluge extends NanoresourcePromise {
    * @param {OnSendCallback} [onSend]
    */
   constructor (opts = {}) {
-    const { onPeer = peerCallback, onPacket = passPacket, onSend = passPacketPeer } = opts
+    const { onPeer = peerCallback, onPacket = pass, onSend = pass } = opts
 
     super()
 
