@@ -20,7 +20,7 @@ class Peer extends PeerBase {
     this.broadcast.on('packet', packet => {
       this.emit('packet', packet)
     })
-    this.broadcast.on('send', packet => {
+    this.broadcast.on('peer-send', packet => {
       this.emit('send', packet)
     })
   }

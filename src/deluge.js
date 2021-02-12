@@ -1,7 +1,6 @@
-/**
- * @typedef {import('./packet')} Packet
- * @typedef {import('./peer')} Peer
- */
+/** @typedef {import('./packet')} Packet */
+/** @typedef {import('./peer')} Peer */
+/** @typedef {import('streamx').Duplex} Duplex */
 
 /**
  * @callback OnPeerCallback
@@ -46,9 +45,9 @@ class Deluge extends NanoresourcePromise {
   /**
    * @constructor
    * @param {Object} [opts]
-   * @param {OnPeerCallback} [onPeer]
-   * @param {OnPacketCallback} [onPacket]
-   * @param {OnSendCallback} [onSend]
+   * @param {OnPeerCallback} [opts.onPeer] Callback to pre-process a new peer.
+   * @param {OnPacketCallback} [opts.onPacket] Async callback to filter incoming packets.
+   * @param {OnSendCallback} [opts.onSend] Async callback to filter peers before to send a packet.
    */
   constructor (opts = {}) {
     const { onPeer = peerCallback, onPacket = pass, onSend = pass } = opts
@@ -80,6 +79,8 @@ class Deluge extends NanoresourcePromise {
   }
 
   /**
+   * Wait for the deluge to be opened.
+   *
    * @returns {Promise}
    */
   async ready () {
@@ -100,6 +101,8 @@ class Deluge extends NanoresourcePromise {
   }
 
   /**
+   * Open deluge with a Buffer ID.
+   *
    * @param {Buffer} [id]
    * @returns {Promise}
    */
@@ -133,6 +136,8 @@ class Deluge extends NanoresourcePromise {
   }
 
   /**
+   * Get a peer by key.
+   *
    * @param {Buffer|String} key
    * @returns {Peer|undefined}
    */
@@ -141,6 +146,8 @@ class Deluge extends NanoresourcePromise {
   }
 
   /**
+   * Add a new peer into the deluge network.
+   *
    * @param {Buffer|String} key
    * @param {Peer.Handler} handler
    * @returns {Promise<Peer>}
@@ -165,7 +172,7 @@ class Deluge extends NanoresourcePromise {
     const peer = this._onPeer(id, handler)
     this._peers.set(key, peer)
     peer.subscribe(this._readPacket, (packet) => {
-      this.emit('send', packet)
+      this.emit('peer-send', packet)
     })
     this.emit('peer-added', peer)
     return peer
@@ -186,7 +193,7 @@ class Deluge extends NanoresourcePromise {
   }
 
   /**
-   * Broadcast a flooding message into the network.
+   * Broadcast a flooding message into the deluge network.
    *
    * @param {number} channel
    * @param {Buffer} data
@@ -197,11 +204,12 @@ class Deluge extends NanoresourcePromise {
 
     const packet = new Packet({ channel, origin: this.id, data })
     this._publish(packet)
+    this.emit('send', packet)
     return packet
   }
 
   /**
-   * Create a new Duplex Streamx
+   * Create a new Duplex Streamx.
    *
    * @param {Object} opts
    * @returns {Duplex}
@@ -287,7 +295,7 @@ class Deluge extends NanoresourcePromise {
       .forEach(peer => {
         this._onSend(packet, peer)
           .then(valid => valid && peer.send(packet))
-          .catch(err => this.emit('on-send-error', err))
+          .catch(err => this.emit('peer-send-error', err))
       })
   }
 
@@ -313,7 +321,7 @@ class Deluge extends NanoresourcePromise {
           this._publish(packet)
         }
       })
-      .catch(err => this.emit('on-packet-error', err))
+      .catch(err => this.emit('packet-error', err))
   }
 }
 

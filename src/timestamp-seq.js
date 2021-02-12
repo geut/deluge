@@ -66,26 +66,39 @@ class TimestampSeq {
   }
 }
 
-module.exports = function generator (limit = 10000) {
+/**
+ * @callback GenerateCallback
+ * @param {Buffer} buf
+ * @param {number} offset
+ * @returns {TimestampSeq}
+ */
+
+/**
+ * @param {number} [limit=10000]
+ * @returns {GenerateCallback}
+ */
+function generator (limit = 10000) {
   let timestamp = 0
-  let offset = 0
+  let globalOffset = 0
 
   function reset () {
     timestamp = Date.now()
-    offset = 0
+    globalOffset = 0
   }
 
   reset()
 
-  return function generate (buf, bufOffset = 0) {
+  return function generate (buf, offset = 0) {
     if (buf) {
-      return TimestampSeq.createFromBuffer(buf, bufOffset)
+      return TimestampSeq.createFromBuffer(buf, offset)
     }
 
-    if (offset > limit) {
+    if (globalOffset > limit) {
       reset()
     }
 
-    return new TimestampSeq(timestamp, offset++)
+    return new TimestampSeq(timestamp, globalOffset++)
   }
 }
+
+module.exports = { generator, TimestampSeq }

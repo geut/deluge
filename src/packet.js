@@ -1,5 +1,9 @@
+/** @typedef {import('./timestamp-seq').TimestampSeq} TimestampSeq */
+
 const varint = require('varint')
-const generate = require('./timestamp-seq')()
+const { generator } = require('./timestamp-seq')
+
+const generateSeqno = generator()
 
 class Packet {
   /**
@@ -13,7 +17,7 @@ class Packet {
     let offset = 0
     const channel = varint.decode(buf, offset)
     offset += varint.decode.bytes
-    const seqno = generate(buf, offset)
+    const seqno = generateSeqno(buf, offset)
     offset += seqno.bytes
     const origin = buf.slice(offset, offset + 32)
     offset += 32
@@ -32,13 +36,13 @@ class Packet {
    * @constructor
    * @param {Object} opts
    * @param {Buffer} opts.origin
-   * @param {Buffer|TypedArray} opts.data
+   * @param {Uint8Array} opts.data
    * @param {number} [opts.channel=0]
    * @param {TimestampSeq} [opts.seqno]
    * @param {Buffer} [opts.buffer]
    */
   constructor (opts) {
-    const { origin, data, channel = 0, seqno = generate(), from, buffer } = opts
+    const { origin, data, channel = 0, seqno = generateSeqno(), from, buffer } = opts
 
     this.origin = origin
     this.data = data
