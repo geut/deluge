@@ -15,7 +15,8 @@
     "posttest": "npm run lint",
     "lint": "standard \"**/*.js\"",
     "version": "chan release --allow-yanked ${npm_package_version} && git add .",
-    "prepublishOnly": "npm test"
+    "prepublishOnly": "npm test",
+    "doc": "apiness src/index.js"
   },
   "dependencies": {
     "nanocustomassert": "^1.0.0",
@@ -47,6 +48,10 @@
     "ignore": [
       "**/example/src/force-graph.js"
     ]
+  },
+  "apiness": {
+    "include": "Deluge*,deluge*,Handler,Packet,TimestampSeq,timestampSeq.compare",
+    "order": "Deluge*,deluge*,Handler,Packet,TimestampSeq,timestampSeq.compare"
   },
   "repository": {
     "type": "git",

@@ -10,7 +10,9 @@ Send broadcast messages on top of p2p networks
 
 ## Install
 
+```bash
 $ npm install @geut/deluge
+```
 
 ## Usage
 
@@ -20,11 +22,11 @@ const deluge = new Deluge()
 
 // add your peers into deluge
 deluge.addPeer(peer.id, {
-  send(packet) {
+  send (packet) {
     // send data
     peer.write(packet.buffer)
   },
-  subscribe(next) {
+  subscribe (next) {
     // subscribe for incoming data
     peer.on('data', next)
 
@@ -47,145 +49,100 @@ deluge.send(0, Buffer.from('ping'))
 
 ## API
 
-[//]: # "apiness-api"
+<!-- apiness/api -->
 
-#### `deluge = new Deluge([opts])`
+#### `deluge = new Deluge(opts?)`
 
-*   `opts: Object | null`
-    *   `onPeer: OnPeerCallback | null` Callback to pre-process a new peer.
-    *   `onPacket: OnPacketCallback | null` Async callback to filter incoming packets.
-    *   `onSend: OnSendCallback | null` Async callback to filter peers before to send a packet.
+- `opts?: Object = {}`
+  - `onPeer?: OnPeerCallback` Callback to pre-process a new peer.
+  - `onPacket?: OnPacketCallback` Async callback to filter incoming packets.
+  - `onSend?: OnSendCallback` Async callback to filter peers before to send a packet.
 
 #### `deluge.ready() => Promise<any>`
 
 Wait for the deluge to be opened.
 
-#### `deluge.open([id]) => Promise<any>`
+#### `deluge.open(id?) => Promise<any>`
 
 Open deluge with a Buffer ID.
 
-*   `id: Buffer | null`
+- `id?: Buffer = crypto.randomBytes(32)`
 
 #### `deluge.onPeer(callback) => void`
 
-*   `callback: OnPeerCallback`
+- `callback: OnPeerCallback`
 
 #### `deluge.onPacket(callback) => void`
 
-*   `callback: OnPacketCallback`
+- `callback: OnPacketCallback`
 
 #### `deluge.onSend(callback) => void`
 
-*   `callback: OnSendCallback`
+- `callback: OnSendCallback`
 
 #### `deluge.getPeer(key) => Peer | undefined`
 
 Get a peer by key.
 
-*   `key: Buffer | string`
+- `key: Buffer | string`
 
 #### `deluge.addPeer(key, handler) => Promise<Peer>`
 
 Add a new peer into the deluge network.
 
-*   `key: Buffer | string`
-*   `handler: Peer.Handler`
+- `key: Buffer | string`
+- `handler: Peer.Handler`
 
 #### `deluge.deletePeer(key) => Promise<any>`
 
-*   `key: Buffer | string`
+- `key: Buffer | string`
 
 #### `deluge.send(channel, data) => Packet | undefined`
 
 Broadcast a flooding message into the deluge network.
 
-*   `channel: number`
-*   `data: Buffer`
+- `channel: number`
+- `data: Buffer`
 
-#### `deluge.createDuplexStream(opts) => Duplex`
+#### `deluge.createDuplexStream(opts?) => Duplex`
 
 Create a new Duplex Streamx.
 
-*   `opts: any`
+- `opts?: any = {}`
 
-#### `deluge.id: Buffer`
+#### `deluge.id: Buffer | null`
 
 #### `deluge.peers: Peer[] (R)`
 
-#### `OnPacketCallback(packet) => Promise<boolean>`
+#### `Handler: {}`
 
-*   `packet: Packet`
-
-#### `OnPeerCallback(id, handler) => Peer`
-
-*   `id: Buffer`
-*   `handler: Peer.Handler`
-
-#### `OnSendCallback(packet, peer) => Promise<boolean>`
-
-*   `packet: Packet`
-*   `peer: Peer`
+- `send: (packet: any) > undefined`
+- `subscribe: (data: Buffer) > UnsubscribeFunction`
 
 #### `packet = new Packet(opts)`
 
-*   `opts: Object`
-    *   `origin: Buffer`
-    *   `data: Uint8Array`
-    *   `channel: number | null = 0`
-    *   `seqno: TimestampSeq | null`
-    *   `buffer: Buffer | null`
+- `opts: Object`
+  - `origin: Buffer`
+  - `data: Uint8Array`
+  - `channel?: number = 0`
+  - `seqno?: TimestampSeq`
+  - `buffer?: Buffer`
 
-#### `Packet.createFromBuffer(buf, from) => Packet`
+#### `timestampSeq = new TimestampSeq(timestamp, offset)`
 
-*   `buf: Buffer`
-*   `from: Buffer`
+- `timestamp: any`
+- `offset: any`
 
-#### `packet.toString() => string`
+#### `timestampSeq.compare(value) => number`
 
-Returns the unique ID serialized.
+Compare two TimestampSeq (self and value).
 
-#### `packet.origin: Buffer`
+Returns:
+ \- 0 if they are equals.
+ \- 1 if self is major than value
+ \- -1 if self is minor than value
 
-#### `packet.data: Uint8Array`
-
-#### `packet.channel: number`
-
-#### `packet.seqno: TimestampSeq`
-
-#### `packet.from: any`
-
-#### `packet.initiator: boolean (R)`
-
-#### `packet.buffer: Buffer (R)`
-
-#### `Handler: {}`
-
-*   `send: (packet: any) => undefined`
-*   `subscribe: (data: Buffer) => UnsubscribeFunction`
-
-#### `peer = new Peer(id, handler)`
-
-*   `id: Buffer`
-*   `handler: Handler`
-
-#### `peer.send(packet) => void`
-
-*   `packet: Packet`
-
-#### `peer.subscribe(next, onSend) => void`
-
-*   `next: (data: (Buffer | null)) => UnsubscribeFunction`
-*   `onSend: any`
-
-#### `peer.unsubscribe() => void`
-
-#### `peer.id: Buffer`
-
-#### `peer.idStr: string`
-
-#### `peer.handler: Handler`
-
-#### `UnsubscribeFunction() => any`
+- `value: TimestampSeq`
 
 ## Issues
 
