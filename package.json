@@ -70,5 +70,8 @@
   "bugs": {
     "url": "https://github.com/geut/deluge/issues"
   },
-  "homepage": "https://github.com/geut/deluge#readme"
+  "homepage": "https://github.com/geut/deluge#readme",
+  "publishConfig": {
+    "access": "public"
+  }
 }
