@@ -22,7 +22,7 @@
     "nanocustomassert": "^1.0.0",
     "nanoresource-promise": "^2.0.0",
     "proc-nexttick": "^1.0.0",
-    "streamx": "^2.7.1",
+    "streamx": "^2.10.2",
     "varint": "^6.0.0"
   },
   "devDependencies": {

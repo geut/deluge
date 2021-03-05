@@ -258,7 +258,7 @@ class Deluge extends NanoresourcePromise {
     await Promise.all(Array.from(this._streams.values()).map(stream => {
       if (stream.destroyed) return null
       stream.push(null)
-      stream.destroy()
+      nextTick(() => stream.destroy())
       return new Promise(resolve => {
         stream.once('close', resolve)
       })
