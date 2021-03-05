@@ -21,7 +21,7 @@ test('network complete', async () => {
 
   const complete = await setup.complete(3)
 
-  complete.peers[0].send(0, Buffer.from('ping'))
+  await complete.peers[0].send(0, Buffer.from('ping'))
 
   await delay()
 

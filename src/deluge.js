@@ -197,13 +197,13 @@ class Deluge extends NanoresourcePromise {
    *
    * @param {number} channel
    * @param {Buffer} data
-   * @returns {Packet|undefined}
+   * @returns {Promise<Packet|undefined>}
    */
-  send (channel, data) {
+  async send (channel, data) {
     if (!this.opened || this.closing || this.closed) return
 
     const packet = new Packet({ channel, origin: this.id, data })
-    this._publish(packet)
+    await this._publish(packet)
     this.emit('send', packet)
     return packet
   }
@@ -230,8 +230,7 @@ class Deluge extends NanoresourcePromise {
       write: (data, cb) => {
         if (stream.destroying || stream.destroyed) return cb(null)
         if (!data) return cb(null)
-        nextTick(() => this.send(data.channel || 0, data.data || data))
-        cb(null)
+        this.send(data.channel || 0, data.data || data).then(() => cb(null))
       },
       destroy: (cb) => {
         this._streams.delete(stream)
@@ -280,9 +279,9 @@ class Deluge extends NanoresourcePromise {
    * @returns {Promise}
    */
   async _publish (packet) {
-    if (this.destroying || this.destroyed) return
+    if (this.closing || this.closed) return
 
-    this.peers
+    return Promise.all(this.peers
       .filter(peer => {
         // don't send the message to the origin
         if (packet.origin.equals(peer.id)) return false
@@ -292,11 +291,11 @@ class Deluge extends NanoresourcePromise {
 
         return true
       })
-      .forEach(peer => {
-        this._onSend(packet, peer)
+      .map(peer => {
+        return this._onSend(packet, peer)
           .then(valid => valid && peer.send(packet))
           .catch(err => this.emit('peer-send-error', err))
-      })
+      }))
   }
 
   /**
@@ -305,7 +304,7 @@ class Deluge extends NanoresourcePromise {
    * @returns {(Packet|undefined)}
    */
   _readPacket (from, buf) {
-    if (!buf || this.destroying || this.destroyed) return
+    if (!buf || this.closing || this.closed) return
 
     const packet = Packet.createFromBuffer(buf, from)
     if (!packet) return
@@ -318,10 +317,12 @@ class Deluge extends NanoresourcePromise {
       .then(valid => {
         if (valid) {
           this.emit('packet', packet)
-          this._publish(packet)
+          return this._publish(packet)
         }
       })
-      .catch(err => this.emit('packet-error', err))
+      .then(() => {
+        this.emit('packet-deluged', packet)
+      })
   }
 }
 
