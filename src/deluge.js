@@ -268,7 +268,7 @@ class Deluge extends NanoresourcePromise {
 
   _readPacketStream (packet) {
     this._streams.forEach(stream => {
-      if (stream.destroying || stream.destroyed) return
+      if (stream.destroying || stream.destroyed || Duplex.isPaused(stream)) return
       if (!stream.push(packet)) {
         console.warn('deluge highWaterMark')
       }
