@@ -1,6 +1,6 @@
 {
   "name": "@geut/deluge",
-  "version": "1.0.2",
+  "version": "2.0.0",
   "description": "Send broadcast messages on top of p2p networks",
   "main": "src/index.js",
   "files": [
