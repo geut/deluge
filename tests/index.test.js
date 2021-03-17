@@ -47,7 +47,7 @@ test('stream support', async () => {
 
   const data = await new Promise(resolve => dp2.once('data', ({ data }) => resolve(data)))
 
-  expect(data.toString()).toBe('ping')
+  expect(data.toString()).toEqual('ping')
 
   await Promise.all([
     complete.peers[0].broadcast.close(),
@@ -78,4 +78,28 @@ test('add/delete peer', async () => {
   expect(deluge.peers.length).toBe(1)
   await deluge.deletePeer(str)
   expect(deluge.peers.length).toBe(0)
+})
+
+test('distance', async (done) => {
+  const packets = []
+
+  const setup = createNetworkSetup({
+    onPeer (peer) {
+      peer.on('packet', (packet) => {
+        packets.push(packet.distance)
+        if (packets.length === 4) {
+          finish()
+        }
+      })
+    }
+  })
+
+  const complete = await setup.path(5)
+
+  await complete.peers[0].send(0, Buffer.from('ping'))
+
+  function finish () {
+    expect(packets).toEqual([1, 2, 3, 4])
+    done()
+  }
 })

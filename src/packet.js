@@ -5,6 +5,8 @@ const { generator } = require('./timestamp-seq')
 
 const generateSeqno = generator()
 
+const DISTANCE_OFFSET = varint.encodingLength(Number.MAX_SAFE_INTEGER)
+
 class Packet {
   /**
    * @param {Buffer} buf
@@ -21,6 +23,9 @@ class Packet {
     offset += seqno.bytes
     const origin = buf.slice(offset, offset + 32)
     offset += 32
+    const distance = varint.decode(buf, offset)
+    varint.encode(distance + 1, buf, offset)
+    offset += DISTANCE_OFFSET
     const data = buf.slice(offset)
     return new Packet({
       channel,
@@ -28,6 +33,7 @@ class Packet {
       origin,
       data,
       from,
+      distance,
       buffer: buf
     })
   }
@@ -39,24 +45,51 @@ class Packet {
    * @param {Uint8Array} opts.data
    * @param {number} [opts.channel=0]
    * @param {TimestampSeq} [opts.seqno]
+   * @param {Uint8Array} [opts.from]
+   * @param {number} [opts.distance=0]
    * @param {Buffer} [opts.buffer]
    */
   constructor (opts) {
-    const { origin, data, channel = 0, seqno = generateSeqno(), from, buffer } = opts
+    const { origin, data, channel = 0, seqno = generateSeqno(), from, buffer, distance = 0 } = opts
 
-    this.origin = origin
-    this.data = data
-    this.channel = channel
-    this.seqno = seqno
-    this.from = from
+    this._origin = origin
+    this._data = data
+    this._channel = channel
+    this._seqno = seqno
+    this._from = from
+    this._distance = distance
     this._buffer = buffer
+  }
+
+  get origin () {
+    return this._origin
+  }
+
+  get data () {
+    return this._data
+  }
+
+  get channel () {
+    return this._channel
+  }
+
+  get seqno () {
+    return this._seqno
+  }
+
+  get from () {
+    return this._from
+  }
+
+  get distance () {
+    return this._distance
   }
 
   /**
    * @type {boolean}
    */
   get initiator () {
-    return this.from === undefined
+    return this._from === undefined
   }
 
   /**
@@ -77,7 +110,7 @@ class Packet {
    */
   toString () {
     if (!this._str) {
-      this._str = `${this.origin.toString('hex')}/${this.seqno.toString()}`
+      this._str = `${this._origin.toString('hex')}/${this._seqno.toString()}`
     }
 
     return this._str
@@ -90,15 +123,17 @@ class Packet {
    */
   _encode () {
     let offset = 0
-    // channel<*> + seqno<*> + origin<32> + data<*>
-    const buf = Buffer.allocUnsafe(varint.encodingLength(this.channel) + this.seqno.length + 32 + this.data.length)
-    varint.encode(this.channel, buf, offset)
+    // channel<*> + seqno<*> + origin<32> + distance<MAX_SAFE_INTEGER> + data<*>
+    const buf = Buffer.allocUnsafe(varint.encodingLength(this._channel) + this._seqno.length + 32 + DISTANCE_OFFSET + this._data.length)
+    varint.encode(this._channel, buf, offset)
     offset += varint.encode.bytes
-    this.seqno.write(buf, offset)
-    offset += this.seqno.bytes
-    buf.set(this.origin, offset)
-    offset += this.origin.length
-    buf.set(this.data, offset)
+    this._seqno.write(buf, offset)
+    offset += this._seqno.bytes
+    buf.set(this._origin, offset)
+    offset += this._origin.length
+    varint.encode(this._distance + 1, buf, offset)
+    offset += DISTANCE_OFFSET
+    buf.set(this._data, offset)
     return buf
   }
 }

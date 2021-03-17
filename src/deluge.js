@@ -62,7 +62,6 @@ class Deluge extends NanoresourcePromise {
     this._onPeer = onPeer
     /** @type {Set<Duplex>} */
     this._streams = new Set()
-    this._error = null
 
     this.onPacket(onPacket)
     this.onSend(onSend)
@@ -200,7 +199,7 @@ class Deluge extends NanoresourcePromise {
    * @returns {Promise<Packet|undefined>}
    */
   async send (channel, data) {
-    if (!this.opened || this.closing || this.closed) return
+    await this.ready()
 
     const packet = new Packet({ channel, origin: this.id, data })
     await this._publish(packet)

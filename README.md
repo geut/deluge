@@ -97,7 +97,7 @@ Add a new peer into the deluge network.
 
 - `key: Buffer | string`
 
-#### `deluge.send(channel, data) => Packet | undefined`
+#### `deluge.send(channel, data) => Promise<Packet | undefined>`
 
 Broadcast a flooding message into the deluge network.
 
@@ -126,6 +126,8 @@ Create a new Duplex Streamx.
   - `data: Uint8Array`
   - `channel?: number = 0`
   - `seqno?: TimestampSeq`
+  - `from?: Uint8Array`
+  - `distance?: number = 0`
   - `buffer?: Buffer`
 
 #### `timestampSeq = new TimestampSeq(timestamp, offset)`
