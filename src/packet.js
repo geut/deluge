@@ -11,10 +11,15 @@ class Packet {
   /**
    * @param {Buffer} buf
    * @param {Buffer} from
+   * @param {boolean} [copy=false]
    * @returns {Packet}
    */
-  static createFromBuffer (buf, from) {
+  static createFromBuffer (buf, from, copy = false) {
     if (buf.length < 32) return
+
+    if (copy) {
+      buf = Buffer.from(buf)
+    }
 
     let offset = 0
     const channel = varint.decode(buf, offset)

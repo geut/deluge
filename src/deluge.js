@@ -48,9 +48,10 @@ class Deluge extends NanoresourcePromise {
    * @param {OnPeerCallback} [opts.onPeer] Callback to pre-process a new peer.
    * @param {OnPacketCallback} [opts.onPacket] Async callback to filter incoming packets.
    * @param {OnSendCallback} [opts.onSend] Async callback to filter peers before to send a packet.
+   * @param {boolean} [opts.copy=false] Creates copy packet buffers.
    */
   constructor (opts = {}) {
-    const { onPeer = peerCallback, onPacket = pass, onSend = pass } = opts
+    const { onPeer = peerCallback, onPacket = pass, onSend = pass, copy = false } = opts
 
     super()
 
@@ -60,6 +61,9 @@ class Deluge extends NanoresourcePromise {
     this._peers = new Map()
     /** @type {OnPeerCallback} */
     this._onPeer = onPeer
+
+    this._copy = copy
+
     /** @type {Set<Duplex>} */
     this._streams = new Set()
 
@@ -165,7 +169,7 @@ class Deluge extends NanoresourcePromise {
 
     // delete previous peer if exists
     if (this._peers.has(key)) {
-      this.deletePeer(key)
+      await this.deletePeer(key)
     }
 
     const peer = this._onPeer(id, handler)
@@ -196,13 +200,15 @@ class Deluge extends NanoresourcePromise {
    *
    * @param {number} channel
    * @param {Buffer} data
+   * @param {Object} [opts]
    * @returns {Promise<Packet|undefined>}
    */
-  async send (channel, data) {
+  async send (channel, data, opts = {}) {
     await this.ready()
 
+    const { packetFilter } = opts
     const packet = new Packet({ channel, origin: this.id, data })
-    await this._publish(packet)
+    await this._publish(packet, packetFilter ? this.peers.filter(packetFilter) : this.peers)
     this.emit('send', packet)
     return packet
   }
@@ -277,10 +283,10 @@ class Deluge extends NanoresourcePromise {
    * @param {Packet} packet
    * @returns {Promise}
    */
-  async _publish (packet) {
+  async _publish (packet, peers) {
     if (this.closing || this.closed) return
 
-    return Promise.all(this.peers
+    return Promise.all(peers
       .filter(peer => {
         // don't send the message to the origin
         if (packet.origin.equals(peer.id)) return false
@@ -305,7 +311,7 @@ class Deluge extends NanoresourcePromise {
   _readPacket (from, buf) {
     if (!buf || this.closing || this.closed) return
 
-    const packet = Packet.createFromBuffer(buf, from)
+    const packet = Packet.createFromBuffer(buf, from, this._copy)
     if (!packet) return
 
     // Ignore packets produced by me and forwarded by others
@@ -316,7 +322,7 @@ class Deluge extends NanoresourcePromise {
       .then(valid => {
         if (valid) {
           this.emit('packet', packet)
-          return this._publish(packet)
+          return this._publish(packet, this.peers)
         }
       })
       .then(() => {

@@ -27,12 +27,12 @@
   },
   "devDependencies": {
     "@geut/chan": "^2.0.0",
-    "@geut/network-setup": "^2.1.0",
+    "@geut/network-setup": "^2.2.0",
     "@types/streamx": "^2.9.0",
     "budo": "^11.6.4",
     "jest": "^24.8.0",
     "nanobench-utils": "^1.0.0",
-    "standard": "^14.3.1"
+    "standard": "^16.0.3"
   },
   "jest": {
     "testMatch": [

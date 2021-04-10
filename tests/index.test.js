@@ -3,6 +3,22 @@ const { Deluge } = require('..')
 
 const delay = () => new Promise(resolve => setTimeout(resolve))
 
+const filter = () => {
+  const cache = new Set()
+
+  return {
+    onPacket (packet) {
+      const seqno = packet.seqno.toString('hex')
+      if (cache.has(seqno)) {
+        return false
+      }
+
+      cache.add(seqno)
+      return true
+    }
+  }
+}
+
 test('network complete', async () => {
   const sended = jest.fn()
   const readed = jest.fn()
@@ -16,7 +32,8 @@ test('network complete', async () => {
       peer.on('send', (packet) => {
         sended(packet.data.toString('hex'))
       })
-    }
+    },
+    filter
   })
 
   const complete = await setup.complete(3)

@@ -7,16 +7,16 @@ class Peer extends PeerBase {
   constructor (node, opts = {}) {
     super(node)
 
-    const cache = new Set()
+    const { filter, ...broadcastOpts } = opts
+
     this.broadcast = new Deluge({
-      onPacket: (packet) => {
-        const id = packet.toString()
-        if (cache.has(id)) return false
-        cache.add(id)
-        return true
-      },
-      ...opts
+      onPacket: this._onPacket.bind(this),
+      onSend: this._onSend.bind(this),
+      ...broadcastOpts
     })
+
+    this._filter = filter && filter(this.broadcast)
+
     this.broadcast.on('packet', packet => {
       this.emit('packet', packet)
     })
@@ -31,11 +31,6 @@ class Peer extends PeerBase {
 
   get peers () {
     return this.broadcast.peers
-  }
-
-  async _open () {
-    await this.broadcast.open()
-    await super._open()
   }
 
   send (ch, data) {
@@ -66,23 +61,58 @@ class Peer extends PeerBase {
       }
     }
   }
+
+  async _open () {
+    await this.broadcast.open()
+    await super._open()
+  }
+
+  _onPacket (...args) {
+    if (this._filter && this._filter.onPacket) {
+      return this._filter.onPacket(...args)
+    }
+
+    return true
+  }
+
+  _onSend (...args) {
+    if (this._filter && this._filter.onSend) {
+      return this._filter.onSend(...args)
+    }
+
+    return true
+  }
 }
 
 function createNetworkSetup (opts = {}) {
-  const { onPeer, onSend } = opts
+  const { onPeer, onSend, ...peerOpts } = opts
 
   return new NetworkSetup({
     onPeer (node) {
-      const peer = new Peer(node)
+      const peer = new Peer(node, peerOpts)
       onPeer && onPeer(peer)
       return peer
     },
     onConnection (link, fromPeer, toPeer) {
-      return new Connection(link, {
+      const conn = new Connection(link, {
         open () {
           return fromPeer.connect(toPeer, onSend)
         }
       })
+
+      conn.on('closed', () => {
+        Promise.all([
+          fromPeer.broadcast.deletePeer(toPeer.bufferId),
+          toPeer.broadcast.deletePeer(fromPeer.bufferId)
+        ])
+          .then(() => {
+            conn.emit('close')
+          })
+          .catch(err => {
+            console.error(err)
+          })
+      })
+      return conn
     }
   })
 }

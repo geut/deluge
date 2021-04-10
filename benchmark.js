@@ -6,8 +6,26 @@ const bench = require('nanobench-utils/nanobench')
 
 const { createNetworkSetup } = require('./tests/setup')
 
+const filter = () => {
+  const cache = new Set()
+
+  return {
+    onPacket (packet) {
+      const seqno = packet.seqno.toString('hex')
+      if (cache.has(seqno)) {
+        return false
+      }
+
+      cache.add(seqno)
+      return true
+    }
+  }
+}
+
 ;(async () => {
-  const setup = createNetworkSetup()
+  const setup = createNetworkSetup({
+    filter
+  })
 
   const direct = await setup.complete(2)
   const watz = await setup.wattsStrogatz(15, 10, 0)
