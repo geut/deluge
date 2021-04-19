@@ -35,6 +35,7 @@ const nextTick = require('proc-nexttick')
 
 const Peer = require('./peer')
 const Packet = require('./packet')
+const { generator } = require('./timestamp-seq')
 
 /** @type {OnPeerCallback} */
 const peerCallback = (id, handler) => new Peer(id, handler)
@@ -45,18 +46,19 @@ class Deluge extends NanoresourcePromise {
   /**
    * @constructor
    * @param {Object} [opts]
+   * @param {Buffer} [opts.id]
    * @param {OnPeerCallback} [opts.onPeer] Callback to pre-process a new peer.
    * @param {OnPacketCallback} [opts.onPacket] Async callback to filter incoming packets.
    * @param {OnSendCallback} [opts.onSend] Async callback to filter peers before to send a packet.
    * @param {boolean} [opts.copy=false] Creates copy packet buffers.
    */
   constructor (opts = {}) {
-    const { onPeer = peerCallback, onPacket = pass, onSend = pass, copy = false } = opts
+    const { id = crypto.randomBytes(32), onPeer = peerCallback, onPacket = pass, onSend = pass, copy = false } = opts
 
     super()
 
     /** @type {Buffer|null} */
-    this.id = null
+    this._id = id
     /** @type {Map} */
     this._peers = new Map()
     /** @type {OnPeerCallback} */
@@ -66,12 +68,18 @@ class Deluge extends NanoresourcePromise {
 
     /** @type {Set<Duplex>} */
     this._streams = new Set()
+    this._generators = new Map()
 
     this.onPacket(onPacket)
     this.onSend(onSend)
 
     this._readPacket = this._readPacket.bind(this)
     this._readPacketStream = this._readPacketStream.bind(this)
+    this._getSeqnoGenerator = this._getSeqnoGenerator.bind(this)
+  }
+
+  get id () {
+    return this._id
   }
 
   /**
@@ -109,8 +117,8 @@ class Deluge extends NanoresourcePromise {
    * @param {Buffer} [id]
    * @returns {Promise}
    */
-  open (id = crypto.randomBytes(32)) {
-    this.id = id
+  open (id = this._id) {
+    this._id = id
     return super.open().catch(err => {
       this.emit('opening-error', err)
       throw err
@@ -204,10 +212,19 @@ class Deluge extends NanoresourcePromise {
    * @returns {Promise<Packet|undefined>}
    */
   async send (channel, data, opts = {}) {
+    assert(Number.isInteger(channel))
+    assert(data)
+
     await this.ready()
 
     const { packetFilter } = opts
-    const packet = new Packet({ channel, origin: this.id, data })
+
+    const packet = new Packet({
+      seqno: this._getSeqnoGenerator(channel)(),
+      data,
+      origin: this._id,
+      channel
+    })
     await this._publish(packet, packetFilter ? this.peers.filter(packetFilter) : this.peers)
     this.emit('send', packet)
     return packet
@@ -245,6 +262,15 @@ class Deluge extends NanoresourcePromise {
 
     this._streams.add(stream)
     return stream
+  }
+
+  _getSeqnoGenerator (channel) {
+    let generate = this._generators.get(channel)
+    if (!generate) {
+      generate = generator()
+      this._generators.set(channel, generate)
+    }
+    return generate
   }
 
   _open () {
@@ -311,11 +337,11 @@ class Deluge extends NanoresourcePromise {
   _readPacket (from, buf) {
     if (!buf || this.closing || this.closed) return
 
-    const packet = Packet.createFromBuffer(buf, from, this._copy)
+    const packet = Packet.createFromBuffer(this._getSeqnoGenerator, buf, from, this._copy)
     if (!packet) return
 
     // Ignore packets produced by me and forwarded by others
-    if (packet.origin.equals(this.id)) return
+    if (packet.origin.equals(this._id)) return
 
     // Custom filter.
     this._onPacket(packet)

@@ -14,9 +14,5 @@
   "license": "ISC",
   "devDependencies": {
     "parcel": "^1.12.4"
-  },
-  "dependencies": {
-    "hashlru": "^2.3.0",
-    "lodash.debounce": "^4.0.8"
   }
 }

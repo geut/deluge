@@ -1,20 +1,18 @@
 /** @typedef {import('./timestamp-seq').TimestampSeq} TimestampSeq */
 
 const varint = require('varint')
-const { generator } = require('./timestamp-seq')
-
-const generateSeqno = generator()
 
 const DISTANCE_OFFSET = varint.encodingLength(Number.MAX_SAFE_INTEGER)
 
 class Packet {
   /**
+   * @param {Deluge} getSeqnoGenerator
    * @param {Buffer} buf
    * @param {Buffer} from
    * @param {boolean} [copy=false]
    * @returns {Packet}
    */
-  static createFromBuffer (buf, from, copy = false) {
+  static createFromBuffer (getSeqnoGenerator, buf, from, copy = false) {
     if (buf.length < 32) return
 
     if (copy) {
@@ -24,8 +22,8 @@ class Packet {
     let offset = 0
     const channel = varint.decode(buf, offset)
     offset += varint.decode.bytes
-    const seqno = generateSeqno(buf, offset)
-    offset += seqno.bytes
+    const seqno = getSeqnoGenerator(channel)(buf, offset)
+    offset += seqno._bytes
     const origin = buf.slice(offset, offset + 32)
     offset += 32
     const distance = varint.decode(buf, offset)
@@ -33,10 +31,10 @@ class Packet {
     offset += DISTANCE_OFFSET
     const data = buf.slice(offset)
     return new Packet({
-      channel,
       seqno,
-      origin,
       data,
+      origin,
+      channel,
       from,
       distance,
       buffer: buf
@@ -46,24 +44,28 @@ class Packet {
   /**
    * @constructor
    * @param {Object} opts
-   * @param {Buffer} opts.origin
+   * @param {TimestampSeq} opts.seqno
    * @param {Uint8Array} opts.data
+   * @param {Buffer} opts.origin
    * @param {number} [opts.channel=0]
-   * @param {TimestampSeq} [opts.seqno]
    * @param {Uint8Array} [opts.from]
    * @param {number} [opts.distance=0]
    * @param {Buffer} [opts.buffer]
    */
   constructor (opts) {
-    const { origin, data, channel = 0, seqno = generateSeqno(), from, buffer, distance = 0 } = opts
+    const { seqno, data, origin, channel = 0, from, buffer, distance = 0 } = opts
 
-    this._origin = origin
-    this._data = data
-    this._channel = channel
     this._seqno = seqno
+    this._data = data
+    this._origin = origin
+    this._channel = channel
     this._from = from
     this._distance = distance
     this._buffer = buffer
+  }
+
+  get deluge () {
+    return this._deluge
   }
 
   get origin () {
@@ -94,7 +96,7 @@ class Packet {
    * @type {boolean}
    */
   get initiator () {
-    return this._from === undefined
+    return !this._from
   }
 
   /**
@@ -133,7 +135,7 @@ class Packet {
     varint.encode(this._channel, buf, offset)
     offset += varint.encode.bytes
     this._seqno.write(buf, offset)
-    offset += this._seqno.bytes
+    offset += this._seqno._bytes
     buf.set(this._origin, offset)
     offset += this._origin.length
     varint.encode(this._distance + 1, buf, offset)

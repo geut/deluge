@@ -8,20 +8,32 @@ class TimestampSeq {
     const offset = varint.decode(buf, bufOffset + bytes)
     bytes += varint.decode.bytes
     const seq = new TimestampSeq(timestamp, offset)
-    seq.bytes = bytes
+    seq._bytes = bytes
     return seq
   }
 
   constructor (timestamp, offset) {
-    this.timestamp = timestamp
-    this.offset = offset
-    this.bytes = 0
+    this._timestamp = timestamp
+    this._offset = offset
+    this._bytes = 0
     this._length = 0
+  }
+
+  get timestamp () {
+    return this._timestamp
+  }
+
+  get offset () {
+    return this._offset
+  }
+
+  get bytes () {
+    return this._bytes
   }
 
   get length () {
     if (!this._length) {
-      this._length = varint.encodingLength(this.timestamp) + varint.encodingLength(this.offset)
+      this._length = varint.encodingLength(this._timestamp) + varint.encodingLength(this._offset)
     }
 
     return this._length
@@ -29,18 +41,18 @@ class TimestampSeq {
 
   toString () {
     if (!this._str) {
-      this._str = `${this.timestamp}/${this.offset}`
+      this._str = `${this._timestamp}/${this._offset}`
     }
 
     return this._str
   }
 
   write (buf, bufOffset = 0) {
-    this.bytes = 0
-    varint.encode(this.timestamp, buf, bufOffset)
-    this.bytes += varint.encode.bytes
-    varint.encode(this.offset, buf, bufOffset + this.bytes)
-    this.bytes += varint.encode.bytes
+    this._bytes = 0
+    varint.encode(this._timestamp, buf, bufOffset)
+    this._bytes += varint.encode.bytes
+    varint.encode(this._offset, buf, bufOffset + this._bytes)
+    this._bytes += varint.encode.bytes
     return buf
   }
 
@@ -56,12 +68,12 @@ class TimestampSeq {
    * @returns {number}
    */
   compare (value) {
-    if (this.timestamp === value.timestamp) {
-      if (this.offset === value.offset) return 0
-      if (this.offset > value.offset) return 1
+    if (this._timestamp === value._timestamp) {
+      if (this._offset === value._offset) return 0
+      if (this._offset > value._offset) return 1
       return -1
     }
-    if (this.timestamp > value.timestamp) return 1
+    if (this._timestamp > value._timestamp) return 1
     return -1
   }
 }

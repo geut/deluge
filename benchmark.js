@@ -4,7 +4,7 @@
 
 const bench = require('nanobench-utils/nanobench')
 
-const { createNetworkSetup } = require('./tests/setup')
+const { delugeNetworkSetup } = require('./')
 
 const filter = () => {
   const cache = new Set()
@@ -23,7 +23,7 @@ const filter = () => {
 }
 
 ;(async () => {
-  const setup = createNetworkSetup({
+  const setup = delugeNetworkSetup({
     filter
   })
 

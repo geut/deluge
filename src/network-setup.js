@@ -1,7 +1,7 @@
 const { EventEmitter } = require('events')
 const { NetworkSetup, Peer: PeerBase, Connection } = require('@geut/network-setup')
 
-const { Deluge } = require('..')
+const Deluge = require('./deluge')
 
 class Peer extends PeerBase {
   constructor (node, opts = {}) {
@@ -10,6 +10,7 @@ class Peer extends PeerBase {
     const { filter, ...broadcastOpts } = opts
 
     this.broadcast = new Deluge({
+      id: typeof node.id === 'string' ? Buffer.from(node.id, 'hex') : undefined,
       onPacket: this._onPacket.bind(this),
       onSend: this._onSend.bind(this),
       ...broadcastOpts
@@ -84,7 +85,12 @@ class Peer extends PeerBase {
   }
 }
 
-function createNetworkSetup (opts = {}) {
+/**
+ * Creates a network simulation to test your deluge
+ * @param {object} opts
+ * @returns {NetworkSetup}
+ */
+function delugeNetworkSetup (opts = {}) {
   const { onPeer, onSend, ...peerOpts } = opts
 
   return new NetworkSetup({
@@ -117,4 +123,4 @@ function createNetworkSetup (opts = {}) {
   })
 }
 
-module.exports = { createNetworkSetup, Peer }
+module.exports = delugeNetworkSetup

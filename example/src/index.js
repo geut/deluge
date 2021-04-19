@@ -1,6 +1,6 @@
 // const createGraph = require('ngraph.graph')
 const ForceGraph = require('./force-graph')
-const { createNetworkSetup } = require('../../tests/setup')
+const { delugeNetworkSetup } = require('../../')
 
 const peersTitle = document.getElementById('peers-title')
 const connectionsTitle = document.getElementById('connections-title')
@@ -30,7 +30,7 @@ const filter = () => {
   let packetsSended = 0
   let packetsReaded = 0
 
-  const setup = createNetworkSetup({
+  const setup = delugeNetworkSetup({
     onPeer (peer) {
       peer.on('packet', () => {
         packetsReaded++

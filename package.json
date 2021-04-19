@@ -19,6 +19,7 @@
     "doc": "apiness src/index.js"
   },
   "dependencies": {
+    "@geut/network-setup": "^2.2.1",
     "nanocustomassert": "^1.0.0",
     "nanoresource-promise": "^2.0.0",
     "proc-nexttick": "^1.0.0",
@@ -27,7 +28,6 @@
   },
   "devDependencies": {
     "@geut/chan": "^2.0.0",
-    "@geut/network-setup": "^2.2.0",
     "@types/streamx": "^2.9.0",
     "budo": "^11.6.4",
     "jest": "^24.8.0",
