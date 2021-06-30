@@ -1,6 +1,6 @@
 {
   "name": "@geut/deluge",
-  "version": "3.2.1",
+  "version": "4.0.0",
   "description": "Send broadcast messages on top of p2p networks",
   "type": "module",
   "exports": {
