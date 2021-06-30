@@ -1,4 +1,7 @@
-const { Deluge, delugeNetworkSetup } = require('..')
+import { jest } from '@jest/globals'
+
+import { Deluge } from '../src/index.js'
+import { networkSetup } from './network-setup.js'
 
 const delay = () => new Promise(resolve => setTimeout(resolve))
 
@@ -22,7 +25,7 @@ test('network complete', async () => {
   const sended = jest.fn()
   const readed = jest.fn()
 
-  const setup = delugeNetworkSetup({
+  const setup = networkSetup({
     onPeer (peer) {
       peer.on('packet', (packet) => {
         readed(packet.data.toString('hex'))
@@ -48,7 +51,7 @@ test('network complete', async () => {
 test('stream support', async () => {
   expect.assertions(2)
 
-  const setup = delugeNetworkSetup()
+  const setup = networkSetup()
 
   const complete = await setup.complete(2)
 
@@ -96,15 +99,21 @@ test('add/delete peer', async () => {
   expect(deluge.peers.length).toBe(0)
 })
 
-test('distance', async (done) => {
+test('distance', async () => {
   const packets = []
 
-  const setup = delugeNetworkSetup({
+  const done = {}
+  done.promise = new Promise(resolve => {
+    done.resolve = resolve
+  })
+
+  const setup = networkSetup({
     onPeer (peer) {
       peer.on('packet', (packet) => {
         packets.push(packet.distance)
         if (packets.length === 4) {
-          finish()
+          expect(packets).toEqual([1, 2, 3, 4])
+          done.resolve()
         }
       })
     }
@@ -114,8 +123,5 @@ test('distance', async (done) => {
 
   await complete.peers[0].send(0, Buffer.from('ping'))
 
-  function finish () {
-    expect(packets).toEqual([1, 2, 3, 4])
-    done()
-  }
+  return done.promise
 })

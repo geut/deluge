@@ -1,10 +1,10 @@
 /** @typedef {import('./timestamp-seq').TimestampSeq} TimestampSeq */
 
-const varint = require('varint')
+import varint from 'varint'
 
 const DISTANCE_OFFSET = varint.encodingLength(Number.MAX_SAFE_INTEGER)
 
-class Packet {
+export class Packet {
   /**
    * @param {Deluge} getSeqnoGenerator
    * @param {Buffer} buf
@@ -144,5 +144,3 @@ class Packet {
     return buf
   }
 }
-
-module.exports = Packet

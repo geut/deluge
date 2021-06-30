@@ -27,22 +27,22 @@
  * @prop {Buffer} id
  */
 
-const { Duplex } = require('streamx')
-const crypto = require('crypto')
-const assert = require('nanocustomassert')
-const { NanoresourcePromise } = require('nanoresource-promise/emitter')
-const nextTick = require('proc-nexttick')
+import { Duplex } from 'streamx'
+import crypto from 'crypto'
+import assert from 'nanocustomassert'
+import { NanoresourcePromise } from 'nanoresource-promise/emitter.js'
+import nextTick from 'proc-nexttick'
 
-const Peer = require('./peer')
-const Packet = require('./packet')
-const { generator } = require('./timestamp-seq')
+import { Peer } from './peer.js'
+import { Packet } from './packet.js'
+import { generator } from './timestamp-seq.js'
 
 /** @type {OnPeerCallback} */
 const peerCallback = (id, handler) => new Peer(id, handler)
 const pass = () => true
 const byteLength = (packet) => packet.buffer.byteLength
 
-class Deluge extends NanoresourcePromise {
+export class Deluge extends NanoresourcePromise {
   /**
    * @constructor
    * @param {Object} [opts]
@@ -356,5 +356,3 @@ class Deluge extends NanoresourcePromise {
       })
   }
 }
-
-module.exports = Deluge

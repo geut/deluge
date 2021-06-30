@@ -2,24 +2,27 @@
   "name": "@geut/deluge",
   "version": "3.2.1",
   "description": "Send broadcast messages on top of p2p networks",
-  "main": "src/index.js",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js",
+    "./peer": "./src/peer.js",
+    "./packet": "./src/packet.js",
+    "./timestamp-seq": "./src/timestamp-seq.js"
+  },
   "files": [
-    "lib",
-    "src",
-    "bin",
-    "index.js"
+    "src"
   ],
   "scripts": {
     "start": "budo example/src/index.js --dir example --live",
-    "test": "jest --passWithNoTests",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest --passWithNoTests",
     "posttest": "npm run lint",
     "lint": "standard \"**/*.js\"",
     "version": "chan release --allow-yanked ${npm_package_version} && git add .",
     "prepublishOnly": "npm test",
-    "doc": "apiness src/index.js"
+    "doc": "apiness src/index.js",
+    "benchmark": "node tests/benchmark.js"
   },
   "dependencies": {
-    "@geut/network-setup": "^2.2.1",
     "nanocustomassert": "^1.0.0",
     "nanoresource-promise": "^2.0.0",
     "proc-nexttick": "^1.0.0",
@@ -28,13 +31,16 @@
   },
   "devDependencies": {
     "@geut/chan": "^2.0.0",
+    "@geut/network-setup": "^2.2.1",
     "@types/streamx": "^2.9.0",
     "budo": "^11.6.4",
-    "jest": "^24.8.0",
+    "jest": "^27.0.4",
     "nanobench-utils": "^1.0.0",
     "standard": "^16.0.3"
   },
   "jest": {
+    "testEnvironment": "jest-environment-node",
+    "transform": {},
     "testMatch": [
       "**/tests/**/*.test.js"
     ]

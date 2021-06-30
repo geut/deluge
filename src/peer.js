@@ -10,9 +10,9 @@
  * @prop {(data: Buffer) => UnsubscribeFunction} subscribe
  */
 
-const { EventEmitter } = require('events')
+import { EventEmitter } from 'events'
 
-class Peer extends EventEmitter {
+export class Peer extends EventEmitter {
   /**
    * @constructor
    * @param {Buffer} id
@@ -61,5 +61,3 @@ class Peer extends EventEmitter {
     if (this._unsubscribe) this._unsubscribe()
   }
 }
-
-module.exports = Peer

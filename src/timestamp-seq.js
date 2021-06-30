@@ -1,6 +1,6 @@
-const varint = require('varint')
+import varint from 'varint'
 
-class TimestampSeq {
+export class TimestampSeq {
   static createFromBuffer (buf, bufOffset = 0) {
     let bytes = 0
     const timestamp = varint.decode(buf, bufOffset)
@@ -89,7 +89,7 @@ class TimestampSeq {
  * @param {number} [limit=10000]
  * @returns {GenerateCallback}
  */
-function generator (limit = 10000) {
+export function generator (limit = 10000) {
   let timestamp = 0
   let globalOffset = 0
 
@@ -112,5 +112,3 @@ function generator (limit = 10000) {
     return new TimestampSeq(timestamp, globalOffset++)
   }
 }
-
-module.exports = { generator, TimestampSeq }
