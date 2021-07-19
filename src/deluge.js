@@ -73,7 +73,7 @@ export class Deluge extends NanoresourcePromise {
     this.onPacket(onPacket)
     this.onSend(onSend)
 
-    this._readPacket = this._readPacket.bind(this)
+    this.processIncomingMessage = this.processIncomingMessage.bind(this)
     this._readPacketStream = this._readPacketStream.bind(this)
     this._getSeqnoGenerator = this._getSeqnoGenerator.bind(this)
   }
@@ -173,7 +173,6 @@ export class Deluge extends NanoresourcePromise {
 
     assert(id && Buffer.isBuffer(id) && id.length === 32, 'key must be a buffer of 32 bytes or a valid hexadecimal string of 32 bytes')
     assert(handler.send, 'handler.send is required')
-    assert(handler.subscribe, 'handler.subscribe is required')
 
     // delete previous peer if exists
     if (this._peers.has(key)) {
@@ -182,7 +181,7 @@ export class Deluge extends NanoresourcePromise {
 
     const peer = this._onPeer(id, handler)
     this._peers.set(key, peer)
-    peer.subscribe(this._readPacket, (packet) => {
+    peer.subscribe(this.processIncomingMessage, (packet) => {
       this.emit('peer-send', packet)
     })
     this.emit('peer-added', peer)
@@ -264,6 +263,33 @@ export class Deluge extends NanoresourcePromise {
     return stream
   }
 
+  /**
+   * @param {Buffer} from
+   * @param {Buffer} buf
+   * @returns {(Packet|undefined)}
+   */
+  processIncomingMessage (from, buf) {
+    if (!from || !buf || this.closing || this.closed) return
+
+    const packet = Packet.createFromBuffer(this._getSeqnoGenerator, buf, from, this._copy)
+    if (!packet) return
+
+    // Ignore packets produced by me and forwarded by others
+    if (packet.origin.equals(this._id)) return
+
+    // Custom filter.
+    this._onPacket(packet)
+      .then(valid => {
+        if (valid) {
+          this.emit('packet', packet)
+          return this._publish(packet, this.peers)
+        }
+      })
+      .then(() => {
+        this.emit('packet-deluged', packet)
+      })
+  }
+
   _getSeqnoGenerator (channel) {
     let generate = this._generators.get(channel)
     if (!generate) {
@@ -327,32 +353,5 @@ export class Deluge extends NanoresourcePromise {
           .then(valid => valid && peer.send(packet))
           .catch(err => this.emit('peer-send-error', err))
       }))
-  }
-
-  /**
-   * @param {Buffer} from
-   * @param {Buffer} buf
-   * @returns {(Packet|undefined)}
-   */
-  _readPacket (from, buf) {
-    if (!buf || this.closing || this.closed) return
-
-    const packet = Packet.createFromBuffer(this._getSeqnoGenerator, buf, from, this._copy)
-    if (!packet) return
-
-    // Ignore packets produced by me and forwarded by others
-    if (packet.origin.equals(this._id)) return
-
-    // Custom filter.
-    this._onPacket(packet)
-      .then(valid => {
-        if (valid) {
-          this.emit('packet', packet)
-          return this._publish(packet, this.peers)
-        }
-      })
-      .then(() => {
-        this.emit('packet-deluged', packet)
-      })
   }
 }
