@@ -4,6 +4,7 @@
 
 /**
  * @callback OnPeerCallback
+ * @async
  * @param {Buffer} id
  * @param {Peer.Handler} handler
  * @returns {Peer}
@@ -28,14 +29,14 @@
  */
 
 import { Duplex } from 'streamx'
-import crypto from 'crypto'
 import assert from 'nanocustomassert'
-import { NanoresourcePromise } from 'nanoresource-promise/emitter.js'
-import nextTick from 'proc-nexttick'
+import { NanoresourcePromise } from 'nanoresource-promise/emitter2'
+import b4a from 'b4a'
 
 import { Peer } from './peer.js'
 import { Packet } from './packet.js'
 import { generator } from './timestamp-seq.js'
+import randomBytes from '@geut/randombytes'
 
 /** @type {OnPeerCallback} */
 const peerCallback = (id, handler) => new Peer(id, handler)
@@ -47,13 +48,13 @@ export class Deluge extends NanoresourcePromise {
    * @constructor
    * @param {Object} [opts]
    * @param {Buffer} [opts.id]
-   * @param {OnPeerCallback} [opts.onPeer] Callback to pre-process a new peer.
+   * @param {OnPeerCallback} [opts.onPeer] Async callback to pre-process a new peer.
    * @param {OnPacketCallback} [opts.onPacket] Async callback to filter incoming packets.
    * @param {OnSendCallback} [opts.onSend] Async callback to filter peers before to send a packet.
    * @param {boolean} [opts.copy=false] Creates copy packet buffers.
    */
   constructor (opts = {}) {
-    const { id = crypto.randomBytes(32), onPeer = peerCallback, onPacket = pass, onSend = pass, copy = false } = opts
+    const { id = randomBytes(32), onPeer = peerCallback, onPacket = pass, onSend = pass, copy = false } = opts
 
     super()
 
@@ -96,17 +97,17 @@ export class Deluge extends NanoresourcePromise {
    */
   async ready () {
     if (this.closing || this.closed) throw new Error('deluge closed')
-    if (this.opened) return null
+    if (this.opened) return true
     return new Promise((resolve, reject) => {
       const onOpen = () => {
-        this.removeListener('opening-error', onError)
-        resolve()
+        this.removeListener('error-opening', onError)
+        resolve(true)
       }
       const onError = (err) => {
         this.removeListener('opened', onOpen)
         reject(err)
       }
-      this.once('opening-error', onError)
+      this.once('error-opening', onError)
       this.once('opened', onOpen)
     })
   }
@@ -120,7 +121,7 @@ export class Deluge extends NanoresourcePromise {
   open (id = this._id) {
     this._id = id
     return super.open().catch(err => {
-      this.emit('opening-error', err)
+      this.emit('error-opening', err)
       throw err
     })
   }
@@ -147,39 +148,36 @@ export class Deluge extends NanoresourcePromise {
   }
 
   /**
-   * Get a peer by key.
+   * Get a peer by id.
    *
-   * @param {Buffer|String} key
+   * @param {Buffer} id
    * @returns {Peer|undefined}
    */
-  getPeer (key) {
-    return this._peers.get(key)
+  getPeer (id) {
+    return this._peers.get(id.toString('hex'))
   }
 
   /**
    * Add a new peer into the deluge network.
    *
-   * @param {Buffer|String} key
+   * @param {Buffer} id
    * @param {Peer.Handler} handler
    * @returns {Promise<Peer>}
    */
-  async addPeer (key, handler) {
+  async addPeer (id, handler) {
     await this.ready()
 
-    let id = key
-    if (typeof key === 'string') {
-      id = Buffer.from(key, 'hex')
-    }
-
-    assert(id && Buffer.isBuffer(id) && id.length === 32, 'key must be a buffer of 32 bytes or a valid hexadecimal string of 32 bytes')
+    assert(id && b4a.isBuffer(id) && id.length === 32, 'id must be a buffer of 32 bytes')
     assert(handler.send, 'handler.send is required')
+
+    const key = id.toString('hex')
 
     // delete previous peer if exists
     if (this._peers.has(key)) {
       await this.deletePeer(key)
     }
 
-    const peer = this._onPeer(id, handler)
+    const peer = await this._onPeer(id, handler)
     this._peers.set(key, peer)
     peer.subscribe(this.processIncomingMessage, (packet) => {
       this.emit('peer-send', packet)
@@ -189,11 +187,13 @@ export class Deluge extends NanoresourcePromise {
   }
 
   /**
-   * @param {Buffer|String} key
+   * @param {Buffer} id
    * @returns {Promise}
    */
-  async deletePeer (key) {
+  async deletePeer (id) {
     await this.ready()
+
+    const key = id.toString('hex')
 
     if (!this._peers.has(key)) return
     const peer = this._peers.get(key)
@@ -266,19 +266,18 @@ export class Deluge extends NanoresourcePromise {
   /**
    * @param {Buffer} from
    * @param {Buffer} buf
-   * @returns {(Packet|undefined)}
+   * @returns {Promise<Boolean>}
    */
-  processIncomingMessage (from, buf) {
+  async processIncomingMessage (from, buf) {
     if (!from || !buf || this.closing || this.closed) return
 
     const packet = Packet.createFromBuffer(this._getSeqnoGenerator, buf, from, this._copy)
-    if (!packet) return
 
     // Ignore packets produced by me and forwarded by others
-    if (packet.origin.equals(this._id)) return
+    if (b4a.equals(packet.origin, this._id)) return false
 
     // Custom filter.
-    this._onPacket(packet)
+    return this._onPacket(packet)
       .then(valid => {
         if (valid) {
           this.emit('packet', packet)
@@ -287,6 +286,11 @@ export class Deluge extends NanoresourcePromise {
       })
       .then(() => {
         this.emit('packet-deluged', packet)
+        return true
+      })
+      .catch(err => {
+        this.emit('error-packet', err, packet)
+        return false
       })
   }
 
@@ -314,7 +318,7 @@ export class Deluge extends NanoresourcePromise {
     await Promise.all(Array.from(this._streams.values()).map(stream => {
       if (stream.destroyed) return null
       stream.push(null)
-      nextTick(() => stream.destroy())
+      queueMicrotask(() => stream.destroy())
       return new Promise(resolve => {
         stream.once('close', resolve)
       })
@@ -341,17 +345,17 @@ export class Deluge extends NanoresourcePromise {
     return Promise.all(peers
       .filter(peer => {
         // don't send the message to the origin
-        if (packet.origin.equals(peer.id)) return false
+        if (b4a.equals(packet.origin, peer.id)) return false
 
         // don't send the message back to the sender
-        if (!packet.initiator && packet.from.equals(peer.id)) return false
+        if (!packet.initiator && b4a.equals(packet.from, peer.id)) return false
 
         return true
       })
       .map(peer => {
         return this._onSend(packet, peer)
           .then(valid => valid && peer.send(packet))
-          .catch(err => this.emit('peer-send-error', err))
+          .catch(err => this.emit('error-peer-send', err))
       }))
   }
 }

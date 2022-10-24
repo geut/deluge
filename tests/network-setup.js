@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events'
 import { NetworkSetup, Peer as PeerBase, Connection } from '@geut/network-setup'
+import b4a from 'b4a'
 
 import { Deluge } from '../src/index.js'
 
@@ -10,7 +11,7 @@ class Peer extends PeerBase {
     const { filter, ...broadcastOpts } = opts
 
     this.broadcast = new Deluge({
-      id: typeof node.id === 'string' ? Buffer.from(node.id, 'hex') : undefined,
+      id: typeof node.id === 'string' ? b4a.from(node.id, 'hex') : undefined,
       onPacket: this._onPacket.bind(this),
       onSend: this._onSend.bind(this),
       ...broadcastOpts
@@ -54,7 +55,7 @@ class Peer extends PeerBase {
             return send(from, to, packet)
           }
 
-          process.nextTick(() => to.emit('message', packet.buffer))
+          queueMicrotask(() => to.emit('message', packet.buffer))
         },
         subscribe (next) {
           from.on('message', msg => next(msg))

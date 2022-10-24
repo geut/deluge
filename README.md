@@ -2,7 +2,8 @@
 
 Send broadcast messages on top of p2p networks
 
-[![Build Status](https://travis-ci.com/geut/deluge.svg?branch=main)](https://travis-ci.com/geut/deluge)
+![Test Status](https://github.com/geut/deluge/actions/workflows/test.yml/badge.svg)
+[![Coverage](https://raw.githubusercontent.com/geut/deluge/gh-pages/badges/coverage.svg?raw=true)](https://geut.github.io/deluge/)
 [![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
 [![standard-readme compliant](https://img.shields.io/badge/readme%20style-standard-brightgreen.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
 

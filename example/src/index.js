@@ -1,6 +1,7 @@
-// const createGraph = require('ngraph.graph')
-import ForceGraph from './force-graph.js'
+// // const createGraph = require('ngraph.graph')
+import ForceGraph from './force-graph.cjs'
 import { networkSetup } from '../../tests/network-setup.js'
+import b4a from 'b4a'
 
 const peersTitle = document.getElementById('peers-title')
 const connectionsTitle = document.getElementById('connections-title')
@@ -84,7 +85,7 @@ const filter = () => {
         peer.color = null
       })
       node.color = '#d950cd'
-      node.send(0, Buffer.from('hello'))
+      node.send(0, b4a.from('hello'))
     })
     // .nodeCanvasObjectMode(node => node.color ? 'before' : undefined)
     .nodeCanvasObject((node, ctx) => {

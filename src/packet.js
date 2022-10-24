@@ -1,6 +1,7 @@
 /** @typedef {import('./timestamp-seq').TimestampSeq} TimestampSeq */
 
 import varint from 'varint'
+import b4a from 'b4a'
 
 const DISTANCE_OFFSET = varint.encodingLength(Number.MAX_SAFE_INTEGER)
 
@@ -16,7 +17,7 @@ export class Packet {
     if (buf.length < 32) return
 
     if (copy) {
-      buf = Buffer.from(buf)
+      buf = b4a.from(buf)
     }
 
     let offset = 0
@@ -24,12 +25,12 @@ export class Packet {
     offset += varint.decode.bytes
     const seqno = getSeqnoGenerator(channel)(buf, offset)
     offset += seqno._bytes
-    const origin = buf.slice(offset, offset + 32)
+    const origin = buf.subarray(offset, offset + 32)
     offset += 32
     const distance = varint.decode(buf, offset)
     varint.encode(distance + 1, buf, offset)
     offset += DISTANCE_OFFSET
-    const data = buf.slice(offset)
+    const data = buf.subarray(offset)
     return new Packet({
       seqno,
       data,
@@ -131,7 +132,7 @@ export class Packet {
   _encode () {
     let offset = 0
     // channel<*> + seqno<*> + origin<32> + distance<MAX_SAFE_INTEGER> + data<*>
-    const buf = Buffer.allocUnsafe(varint.encodingLength(this._channel) + this._seqno.length + 32 + DISTANCE_OFFSET + this._data.length)
+    const buf = b4a.allocUnsafe(varint.encodingLength(this._channel) + this._seqno.length + 32 + DISTANCE_OFFSET + this._data.length)
     varint.encode(this._channel, buf, offset)
     offset += varint.encode.bytes
     this._seqno.write(buf, offset)

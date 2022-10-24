@@ -3,61 +3,70 @@
   "version": "4.1.0",
   "description": "Send broadcast messages on top of p2p networks",
   "type": "module",
+  "main": "./dist/index.cjs",
   "exports": {
-    ".": "./src/index.js",
-    "./peer": "./src/peer.js",
-    "./packet": "./src/packet.js",
-    "./timestamp-seq": "./src/timestamp-seq.js"
+    ".": {
+      "require": "./dist/index.cjs",
+      "import": "./src/index.js"
+    },
+    "./package.json": "./package.json"
   },
   "files": [
+    "dist",
     "src"
   ],
+  "browser": {
+    "crypto": false
+  },
   "scripts": {
     "start": "budo example/src/index.js --dir example --live",
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest --passWithNoTests",
+    "benchmark": "node tests/benchmark.js",
+    "build": "tsup",
+    "test": "uvu -i network-setup -i benchmark",
     "posttest": "npm run lint",
-    "lint": "standard \"**/*.js\"",
-    "version": "chan release --allow-yanked ${npm_package_version} && git add .",
-    "prepublishOnly": "npm test",
-    "doc": "apiness src/index.js",
-    "benchmark": "node tests/benchmark.js"
+    "lint": "standard",
+    "prepublishOnly": "npm test && npm run build",
+    "coverage": "c8 npm run test",
+    "make-badge": "coverage-badges"
   },
   "dependencies": {
+    "@geut/randombytes": "^1.0.3",
     "nanocustomassert": "^1.0.0",
-    "nanoresource-promise": "^2.0.0",
-    "proc-nexttick": "^1.0.0",
+    "nanoresource-promise": "^3.1.0",
     "streamx": "^2.10.2",
     "varint": "^6.0.0"
   },
   "devDependencies": {
-    "@geut/chan": "^2.0.0",
-    "@geut/network-setup": "^2.2.1",
+    "@geut/network-setup": "^3.0.1",
     "@types/streamx": "^2.9.0",
-    "budo": "^11.6.4",
-    "jest": "^27.0.4",
-    "nanobench-utils": "^1.0.0",
-    "standard": "^16.0.3"
+    "b4a": "^1.6.1",
+    "c8": "^7.12.0",
+    "coverage-badges": "^1.0.7",
+    "esbuild": "^0.15.12",
+    "standard": "^17.0.0",
+    "tinybench": "^2.3.1",
+    "tinyspy": "^1.0.2",
+    "tsup": "^6.3.0",
+    "uvu": "^0.5.6"
   },
-  "jest": {
-    "testEnvironment": "jest-environment-node",
-    "transform": {},
-    "testMatch": [
-      "**/tests/**/*.test.js"
-    ]
+  "tsup": {
+    "entry": [
+      "src/index.js"
+    ],
+    "format": [
+      "cjs",
+      "iife"
+    ],
+    "globalName": "NanomessageRPC",
+    "splitting": false,
+    "sourcemap": true,
+    "clean": true
   },
   "standard": {
     "env": [
-      "jest",
       "node",
       "browser"
-    ],
-    "ignore": [
-      "**/example/src/force-graph.js"
     ]
-  },
-  "apiness": {
-    "include": "Deluge*,deluge*,Handler,Packet,TimestampSeq,timestampSeq.compare",
-    "order": "Deluge*,deluge*,Handler,Packet,TimestampSeq,timestampSeq.compare"
   },
   "repository": {
     "type": "git",
